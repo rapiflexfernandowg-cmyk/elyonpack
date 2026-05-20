@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELYON PACK — Control Operativo</title>
+
+<!-- ═══════════════════════════════════════════════════
+  ⚙ CONFIGURACIÓN — EDITAR ANTES DE USAR
+  Pegá la URL de tu Apps Script implementado abajo:
+══════════════════════════════════════════════════════ -->
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxkxwR3y9MnpZZLchpNvgjshzakMjW7qYGfFGvsFTpQK7MRg4w70cD9Klk6TeWnSnfgRg/exec"
+</script>
+
+<style>
+:root {
+  --bg:       #080808;
+  --surface:  #0e0e0e;
+  --surface2: #131920;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.13);
+  --text:     #e2e8f0;
+  --text2:    #8090a8;
+  --text3:    #4a5568;
+  --blue:     #c9a84c;
+  --blue-l:   #e8c96a;
+  --green:    #1d9e75;
+  --green-l:  #5dcaa5;
+  --amber:    #ef9f27;
+  --amber-l:  #fac775;
+  --red:      #e24b4a;
+  --red-l:    #f09595;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── Layout ── */
+.app { display: flex; height: 100vh; }
+.sidebar { width: 220px; min-width: 220px; background: var(--surface); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ── Sidebar ── */
+.logo { padding: 20px 16px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 32px; height: 32px; background: #c9a84c; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.logo-name { font-size: 14px; font-weight: 600; }
+.logo-sub  { font-size: 10px; color: var(--text3); }
+.nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+.nav-sec { padding: 10px 16px 4px; font-size: 10px; color: var(--text3); letter-spacing: .8px; text-transform: uppercase; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 16px; cursor: pointer; font-size: 13px; color: var(--text2); border-left: 2px solid transparent; transition: all .15s; }
+.nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.nav-item.active { background: rgba(201,168,76,.15); color: #e8c96a; border-left-color: #c9a84c; }
+.nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+.nav-sync { padding: 12px 16px; border-top: 0.5px solid var(--border); font-size: 11px; color: var(--text3); }
+.sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text3); margin-right: 5px; }
+.sync-dot.ok { background: var(--green); }
+.sync-dot.err { background: var(--red); }
+
+/* ── Topbar ── */
+.topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.page-title { font-size: 15px; font-weight: 600; }
+.page-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 7px; font-size: 12px; cursor: pointer; border: 0.5px solid var(--border2); background: rgba(255,255,255,.05); color: var(--text); transition: all .15s; }
+.btn:hover { background: rgba(255,255,255,.09); }
+.btn-primary { background: #c9a84c; border-color: #c9a84c; color: #000; }
+.btn-primary:hover { background: #d4b05a; }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-danger { background: rgba(226,75,74,.15); border-color: rgba(226,75,74,.3); color: var(--red-l); }
+
+/* ── Spinner ── */
+.spinner-wrap { display: flex; justify-content: center; align-items: center; padding: 60px; }
+.spinner { width: 32px; height: 32px; border: 2px solid var(--border2); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Alert strip ── */
+.alert-strip { border-radius: 10px; padding: 11px 14px; display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 6px; }
+.alert-strip.warn   { background: rgba(186,117,23,.12); border: 0.5px solid rgba(186,117,23,.3); color: var(--amber-l); }
+.alert-strip.danger { background: rgba(162,45,45,.15);  border: 0.5px solid rgba(162,45,45,.35); color: var(--red-l); }
+.alert-strip.info   { background: rgba(29,106,229,.1);  border: 0.5px solid rgba(29,106,229,.25); color: var(--blue-l); }
+
+/* ── KPI grid ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 16px; position: relative; overflow: hidden; }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.kpi-card.blue::before  { background: var(--blue); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.amber::before { background: var(--amber); }
+.kpi-card.red::before   { background: var(--red); }
+.kpi-label { font-size: 10px; color: var(--text3); letter-spacing: .4px; text-transform: uppercase; font-weight: 500; }
+.kpi-value { font-size: 28px; font-weight: 600; color: #f0f4ff; margin: 6px 0 4px; }
+.kpi-delta { font-size: 11px; color: var(--text2); }
+.kpi-delta.up   { color: var(--green-l); }
+.kpi-delta.down { color: var(--red-l); }
+
+/* ── Mid grid ── */
+.mid-grid { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 14px; margin-bottom: 20px; }
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.card-action { font-size: 11px; color: var(--blue-l); cursor: pointer; }
+
+/* ── Bar chart ── */
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 110px; }
+.bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--blue); cursor: pointer; transition: opacity .15s; }
+.bar:hover { opacity: .75; }
+.bar-lbl { font-size: 9px; color: var(--text3); }
+
+/* ── Driver rows ── */
+.driver-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-radius: 8px; cursor: pointer; transition: background .1s; }
+.driver-row:hover { background: rgba(255,255,255,.04); }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.av-b { background: rgba(29,106,229,.2); color: var(--blue-l); }
+.av-g { background: rgba(29,158,117,.2); color: var(--green-l); }
+.av-a { background: rgba(239,159,39,.2); color: var(--amber-l); }
+.av-r { background: rgba(226,75,74,.2); color: var(--red-l); }
+.dr-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.dr-meta { font-size: 10px; color: var(--text3); }
+.dr-score { font-size: 12px; font-weight: 600; min-width: 36px; text-align: right; }
+
+/* ── Alerts list ── */
+.alert-item { display: flex; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 11px; margin-bottom: 7px; align-items: flex-start; }
+.alert-item.warn   { background: rgba(186,117,23,.1);  border: 0.5px solid rgba(186,117,23,.2);  color: var(--amber-l); }
+.alert-item.danger { background: rgba(162,45,45,.12);  border: 0.5px solid rgba(162,45,45,.25);  color: var(--red-l); }
+.alert-item.info   { background: rgba(29,106,229,.1);  border: 0.5px solid rgba(29,106,229,.2);  color: var(--blue-l); }
+
+/* ── Badges ── */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+.b-active  { background: rgba(29,158,117,.15); color: var(--green-l); }
+.b-suspend { background: rgba(226,75,74,.15);  color: var(--red-l); }
+.b-pending { background: rgba(239,159,39,.15); color: var(--amber-l); }
+.b-new     { background: rgba(29,106,229,.15); color: var(--blue-l); }
+
+/* ── Bottom grid ── */
+.bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── Table ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th { text-align: left; padding: 6px 8px; color: var(--text3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; border-bottom: 0.5px solid var(--border); }
+.data-table td { padding: 9px 8px; color: var(--text2); border-bottom: 0.5px solid rgba(255,255,255,.04); }
+.data-table tr:hover td { background: rgba(255,255,255,.03); }
+.data-table td:first-child { color: var(--text); font-weight: 500; }
+.prog { background: rgba(255,255,255,.06); border-radius: 3px; height: 4px; width: 70px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-section { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 16px; }
+.form-section.full { grid-column: 1 / -1; }
+.f-sec-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 0.5px solid var(--border); }
+.f-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.f-field { display: flex; flex-direction: column; gap: 4px; }
+.f-label { font-size: 10px; color: var(--text3); }
+.f-input { background: rgba(255,255,255,.04); border: 0.5px solid var(--border2); border-radius: 7px; padding: 7px 10px; font-size: 12px; color: var(--text); width: 100%; }
+.f-input:focus { outline: none; border-color: var(--blue); }
+select.f-input option { background: #1a1f2a; }
+
+/* ── Ranking ── */
+.rank-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.025); margin-bottom: 6px; }
+.rank-n { width: 22px; font-size: 12px; color: var(--text3); font-weight: 600; text-align: center; flex-shrink: 0; }
+.rank-n.gold { color: #ef9f27; } .rank-n.silver { color: #8090a8; } .rank-n.bronze { color: #ba7517; }
+.rank-bar-w { flex: 1; }
+.rank-name { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+.rank-bar { height: 4px; border-radius: 3px; }
+.rank-count { font-size: 12px; font-weight: 600; min-width: 42px; text-align: right; }
+
+/* ── Hidden ── */
+.module { display: none; }
+.module.active { display: block; }
+
+/* ── Toast ── */
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 10px; padding: 12px 18px; font-size: 13px; color: var(--text); opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+#toast.show { opacity: 1; }
+
+/* ── Score display ── */
+.score-display { background: rgba(29,106,229,.1); border: 0.5px solid rgba(29,106,229,.3); border-radius: 10px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; grid-column: 1 / -1; }
+.eval-stars { display: flex; gap: 3px; }
+.eval-star { font-size: 18px; cursor: pointer; color: var(--amber); }
+.eval-star.empty { color: rgba(255,255,255,.1); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📦</div>
+      <div>
+        <div class="logo-name">ELYON PACK</div>
+        <div class="logo-sub">Control Operativo</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-sec">Principal</div>
+      <div class="nav-item active" onclick="irA('dashboard')">📊 Dashboard</div>
+      <div class="nav-item" onclick="irA('entrevistas')">👤 Entrevistas <span class="nav-badge" id="badge-entrevistas">—</span></div>
+      <div class="nav-sec">Operaciones</div>
+      <div class="nav-item" onclick="irA('operativo')">🗺 Control Operativo</div>
+      <div class="nav-item" onclick="irA('vehiculos')">🚗 Vehículos</div>
+      <div class="nav-item" onclick="irA('pagos')">💰 Pagos</div>
+      <div class="nav-sec">Gestión</div>
+      <div class="nav-item" onclick="irA('disciplina')">🛡 Disciplinario <span class="nav-badge" id="badge-incidencias">—</span></div>
+      <div class="nav-sec">Gerencia</div>
+      <div class="nav-item" onclick="irA('gerencial')">📈 Panel Gerencial</div>
+    </nav>
+
+    <div class="nav-sync">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">Conectando…</span>
+      <br><span id="syncTime" style="font-size:10px;margin-top:2px;display:block;"></span>
+      <button class="btn btn-sm" style="margin-top:8px;width:100%;" onclick="cargarTodo()">🔄 Actualizar datos</button>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Dashboard Ejecutivo</div>
+        <div class="page-sub" id="pageSub" id="pageSub">Cargando…</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="exportarPDF()">⬇ Exportar PDF</button>
+        <button class="btn btn-primary" id="btnAccion" onclick="accionPrincipal()">+ Nuevo</button>
+      </div>
+    </div>
+
+    <div class="content" id="contentArea">
+      <div class="spinner-wrap"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════════
+let STATE = {
+  modulo: 'dashboard',
+  dashboard: null,
+  choferes: [],
+  operativo: [],
+  entrevistas: [],
+  vehiculos: [],
+  pagos: [],
+  incidencias: [],
+};
+
+const TITULOS = {
+  dashboard:   { title: 'Dashboard Ejecutivo',    sub: '',           btn: '🔄 Actualizar' },
+  entrevistas: { title: 'Módulo de Entrevistas',  sub: 'Candidatos y evaluaciones', btn: '+ Nueva entrevista' },
+  operativo:   { title: 'Control Operativo',      sub: 'Seguimiento diario',        btn: '+ Registrar jornada' },
+  vehiculos:   { title: 'Gestión de Vehículos',   sub: 'Flota y documentación',     btn: '+ Agregar vehículo' },
+  pagos:       { title: 'Control de Pagos',       sub: 'Liquidación y finanzas',    btn: '+ Registrar pago' },
+  disciplina:  { title: 'Control Disciplinario',  sub: 'Incidencias y sanciones',   btn: '+ Nueva incidencia' },
+  gerencial:   { title: 'Panel Gerencial',        sub: 'KPIs estratégicos',         btn: '⬇ Reporte ejecutivo' },
+};
+
+// ════════════════════════════════════════════════
+// API
+// ════════════════════════════════════════════════
+async function api(accion, postData = null) {
+  const url = API_URL + '?accion=' + accion;
+  try {
+    let resp;
+    if (postData) {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData),
+        mode: 'cors'
+      });
+    } else {
+      resp = await fetch(url, { mode: 'cors' });
+    }
+    return await resp.json();
+  } catch (e) {
+    setSync(false);
+    throw e;
+  }
+}
+
+// ════════════════════════════════════════════════
+// CARGA INICIAL
+// ════════════════════════════════════════════════
+async function cargarTodo() {
+  setSync(null);
+  try {
+    const [dash, choferes, entrevistas, vehiculos, incidencias, operativo, pagos] = await Promise.all([
+      api('dashboard'),
+      api('choferes'),
+      api('entrevistas'),
+      api('vehiculos'),
+      api('incidencias'),
+      api('operativo'),
+      api('pagos'),
+    ]);
+    STATE.dashboard   = dash;
+    STATE.choferes    = choferes;
+    STATE.entrevistas = entrevistas;
+    STATE.vehiculos   = vehiculos;
+    STATE.incidencias = incidencias;
+    STATE.operativo   = operativo;
+    STATE.pagos       = pagos;
+
+    // Badges
+    const pendEnt = entrevistas.filter(e => e.estado_final === 'Pendiente' || e.estado_final === 'En revisión').length;
+    const incAb   = incidencias.filter(i => i.estado !== 'Cerrado').length;
+    document.getElementById('badge-entrevistas').textContent = pendEnt || '—';
+    document.getElementById('badge-incidencias').textContent = incAb || '—';
+
+    setSync(true);
+    renderModulo(STATE.modulo);
+    toast('✅ Datos actualizados desde Google Sheets');
+  } catch(e) {
+    setSync(false);
+    content(`<div class="alert-strip danger">❌ Error al conectar con Google Sheets. Verificá que la URL del Apps Script esté configurada correctamente en el HTML.<br><small style="opacity:.7">${e.message}</small></div>`);
+  }
+}
+
+function setSync(ok) {
+  const dot   = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  const time  = document.getElementById('syncTime');
+  if (ok === null) { dot.className = 'sync-dot'; label.textContent = 'Sincronizando…'; return; }
+  if (ok) {
+    dot.className = 'sync-dot ok';
+    label.textContent = 'Conectado';
+    time.textContent  = 'Últ. sync: ' + new Date().toLocaleTimeString('es-AR');
+  } else {
+    dot.className = 'sync-dot err';
+    label.textContent = 'Sin conexión';
+    time.textContent  = '';
+  }
+}
+
+function content(html) {
+  document.getElementById('contentArea').innerHTML = html;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════════
+// NAVEGACIÓN
+// ════════════════════════════════════════════════
+function irA(modulo) {
+  STATE.modulo = modulo;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  const t = TITULOS[modulo];
+  document.getElementById('pageTitle').textContent = t.title;
+  document.getElementById('pageSub').textContent   = t.sub;
+  document.getElementById('btnAccion').textContent  = t.btn;
+  renderModulo(modulo);
+}
+
+function renderModulo(m) {
+  switch(m) {
+    case 'dashboard':   renderDashboard();   break;
+    case 'entrevistas': renderEntrevistas(); break;
+    case 'operativo':   renderOperativo();   break;
+    case 'vehiculos':   renderVehiculos();   break;
+    case 'pagos':       renderPagos();       break;
+    case 'disciplina':  renderDisciplina();  break;
+    case 'gerencial':   renderGerencial();   break;
+  }
+}
+
+function accionPrincipal() {
+  switch(STATE.modulo) {
+    case 'entrevistas': renderFormEntrevista(); break;
+    case 'operativo':   renderFormOperativo();  break;
+    case 'vehiculos':   renderFormVehiculo();   break;
+    case 'pagos':       renderFormPago();       break;
+    case 'disciplina':  renderFormIncidencia(); break;
+    default: cargarTodo();
+  }
+}
+
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function renderDashboard() {
+  const d = STATE.dashboard;
+  if (!d) { content('<div class="spinner-wrap"><div class="spinner"></div></div>'); return; }
+  const k = d.kpis || {};
+  const alertas = (d.alertas || []).slice(0, 4);
+  const zonas   = d.zonas   || [];
+  const ranking  = d.ranking  || [];
+
+  // Barras de entregas semana (placeholder si no hay data diaria)
+  const dias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const bars = dias.map((dia, i) => {
+    const h = [72,85,90,78,100,55,30][i];
+    return `<div class="bar-col">
+      <div class="bar" style="height:${h}%" title="${dia}"></div>
+      <span class="bar-lbl">${dia}</span>
+    </div>`;
+  }).join('');
+
+  const alertasHtml = alertas.length
+    ? alertas.map(a => `<div class="alert-item ${a.tipo}">⚠ ${a.texto}</div>`).join('')
+    : `<div class="alert-item info">✅ Sin alertas críticas en este momento.</div>`;
+
+  const rankingHtml = ranking.slice(0, 5).map((r, i) => {
+    const clr = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    const color = r.tasa>=85 ? 'var(--green-l)' : r.tasa>=70 ? 'var(--amber-l)' : 'var(--red-l)';
+    return `<div class="rank-item">
+      <div class="rank-n ${clr}">${i+1}</div>
+      <div class="rank-bar-w">
+        <div class="rank-name">${r.nombre}</div>
+        <div class="rank-bar" style="width:${r.tasa}%;background:${color};"></div>
+      </div>
+      <div class="rank-count" style="color:${color}">${r.tasa}%</div>
+    </div>`;
+  }).join('') || '<p style="color:var(--text3);font-size:12px;">Sin datos de entregas hoy.</p>';
+
+  const zonasHtml = zonas.slice(0, 5).map(z => {
+    const color = z.eficiencia>=85?'var(--green)':z.eficiencia>=70?'var(--amber)':'var(--red)';
+    const badgeClass = z.eficiencia>=85?'b-active':z.eficiencia>=70?'b-pending':'b-suspend';
+    return `<tr>
+      <td>${z.zona}</td>
+      <td>${z.choferes}</td>
+      <td>${z.entregados}/${z.paquetes}</td>
+      <td><div class="prog"><div class="prog-fill" style="width:${z.eficiencia}%;background:${color};"></div></div></td>
+      <td><span class="badge ${badgeClass}">${z.eficiencia}%</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="color:var(--text3)">Sin datos de zonas hoy.</td></tr>';
+
+  const hoy = new Date().toLocaleDateString('es-AR', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  content(`
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <div id="alertas-header">
+      ${alertas.filter(a=>a.tipo==='danger').map(a=>`<div class="alert-strip danger">🔴 ${a.texto}</div>`).join('')}
+      ${alertas.filter(a=>a.tipo==='warn').map(a=>`<div class="alert-strip warn">⚠ ${a.texto}</div>`).join('')}
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Choferes activos</div>
+        <div class="kpi-value">${k.activos||0}</div>
+        <div class="kpi-delta">${k.inactivos||0} inactivos · ${k.suspendidos||0} suspendidos</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Entregas hoy</div>
+        <div class="kpi-value">${k.totalEntregados||0}</div>
+        <div class="kpi-delta up">de ${k.totalPaquetes||0} asignados · ${k.tasaExito||0}% éxito</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">Devoluciones hoy</div>
+        <div class="kpi-value">${k.totalDevol||0}</div>
+        <div class="kpi-delta ${(k.totalDevol||0)>0?'down':''}">paquetes no entregados</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Incidentes abiertos</div>
+        <div class="kpi-value">${k.incAbiertos||0}</div>
+        <div class="kpi-delta ${(k.vtv_criticos||0)>0?'down':''}">VTV vencidas: ${k.vtv_criticos||0}</div>
+      </div>
+    </div>
+
+    <div class="mid-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Entregas — esta semana</div>
+        </div>
+        <div class="bar-chart">${bars}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Ranking de productividad</div>
+          <span class="card-action" onclick="irA('operativo')">Ver todo →</span>
+        </div>
+        ${rankingHtml}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔔 Alertas activas</div>
+          <span class="card-action" onclick="irA('disciplina')">Ver todas →</span>
+        </div>
+        ${alertasHtml}
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Rendimiento por zona — hoy</div>
+          <span class="card-action" onclick="irA('operativo')">Ver operativo →</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Zona</th><th>Choferes</th><th>Entregas</th><th>Eficiencia</th><th>Estado</th></tr></thead>
+          <tbody>${zonasHtml}</tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Estado de flota</div>
+          <span class="card-action" onclick="irA('vehiculos')">Ver vehículos →</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:2;">
+          <div>✅ Operativos: <strong style="color:var(--green-l)">${(STATE.vehiculos.filter(v=>v.estado==='Operativo')).length}</strong></div>
+          <div>⚠ VTV por vencer (30 días): <strong style="color:var(--amber-l)">${k.vtv_proximos||0}</strong></div>
+          <div>🔴 VTV vencida: <strong style="color:var(--red-l)">${k.vtv_criticos||0}</strong></div>
+          <div>📋 Total registrados: <strong>${STATE.vehiculos.length}</strong></div>
+        </div>
+        <button class="btn btn-sm" style="margin-top:14px;" onclick="irA('vehiculos')">Ver detalle de flota</button>
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:var(--text3);text-align:right;">
+      ${hoy} · Datos desde Google Sheets
+    </div>
+  </div>`);
+}
+
+// ════════════════════════════════════════════════
+// ENTREVISTAS
+// ════════════════════════════════════════════════
+function renderEntrevistas() {
+  const lista = STATE.entrevistas;
+  const rows = lista.length ? lista.map(e => {
+    const bc = e.estado_final==='Aprobado'?'b-active':e.estado_final==='Rechazado'?'b-suspend':'b-pending';
+    return `<tr>
+      <td>${e.fecha||''}</td>
+      <td>${e.nombre||''}</td>
+      <td>${e.dni||''}</td>
+      <td>${e.zona_vive||''}</td>
+      <td>${e.disponibilidad||''}</td>
+      <td>${e.puntaje_total||''}</td>
+      <td><span class="badge ${bc}">${e.estado_final||'Pendiente'}</span></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:20px;">Sin entrevistas registradas</td></tr>';
+
+  content(`
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Candidatos registrados (${lista.length})</div>
+        <button class="btn btn-primary btn-sm" onclick="renderFormEntrevista()">+ Nueva entrevista</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Fecha</th><th>Nombre</th><th>DNI</th><th>Zona</th><th>Disponibilidad</th><th>Puntaje</th><th>Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`);
+}
+
+function renderFormEntrevista() {
+  content(`
+  <form onsubmit="guardarEntrevista(event)">
+  <div class="form-grid">
+    <div class="form-section">
+      <div class="f-sec-title">Datos personales</div>
+      <div class="f-grid">
+        <div class="f-field"><label class="f-label">Nombre y apellido *</label><input class="f-input" name="nombre" required></div>
+        <div class="f-field"><label class="f-label">DNI *</label><input class="f-input" name="dni" required></div>
+        <div class="f-field"><label class="f-label">Teléfono / WhatsApp</label><input class="f-input" name="telefono"></div>
+        <div class="f-field"><label class="f-label">Zona donde vive</label><input class="f-input" name="zona_vive"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="f-sec-title">Datos laborales</div>
+      <div class="f-grid">
+        <div class="f-field"><label class="f-label">Experiencia logística</label><input class="f-input" name="experiencia_logistica" placeholder="años / meses"></div>
+        <div class="f-field"><label class="f-label">Experiencia Flex</label><select class="f-input" name="experiencia_flex"><option>Sí</option><option>No</option></select></div>
+        <div class="f-field"><label class="f-label">Disponibilidad</label><select class="f-input" name="disponibilidad"><option>Full time</option><option>Medio tiempo</option><option>Flexible</option></select></div>
+        <div class="f-field"><label class="f-label">Fines de semana</label><select class="f-input" name="fines_semana"><option>Sí</option><option>No</option><option>A veces</option></select></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="f-sec-title">Documentación</div>
+      <div class="f-grid">
+        <div class="f-field"><label class="f-label">Registro de conducir</label><select class="f-input" name="registro"><option>Vigente</option><option>Por vencer</option><option>Vencido</option><option>No tiene</option></select></div>
+        <div class="f-field"><label class="f-label">VTV</label><select class="f-input" name="vtv"><option>Al día</option><option>Por vencer</option><option>Vencida</option><option>No tiene</option></select></div>
+        <div class="f-field"><label class="f-label">Seguro</label><select class="f-input" name="seguro"><option>Al día</option><option>Por vencer</option><option>No tiene</option></select></div>
+        <div class="f-field"><label class="f-label">Monotributo</label><select class="f-input" name="monotributo"><option>Inscripto</option><option>No inscripto</option><option>En trámite</option></select></div>
+        <div class="f-field"><label class="f-label">CBU / Alias</label><input class="f-input" name="cbu"></div>
+        <div class="f-field"><label class="f-label">Antecedentes</label><select class="f-input" name="antecedentes"><option>Sin antecedentes</option><option>Con antecedentes</option><option>No presentó</option></select></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="f-sec-title">Evaluación</div>
+      <div class="f-grid">
+        ${['puntualidad','comunicacion','actitud','conocimiento_zonas','responsabilidad','presencia','compromiso','manejo_apps'].map(campo => `
+        <div class="f-field">
+          <label class="f-label">${campo.replace(/_/g,' ')}</label>
+          <select class="f-input" name="${campo}">
+            <option value="1">1 ★</option><option value="2">2 ★★</option><option value="3" selected>3 ★★★</option><option value="4">4 ★★★★</option><option value="5">5 ★★★★★</option>
+          </select>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="form-section full">
+      <div class="f-sec-title">Resultado</div>
+      <div class="f-grid">
+        <div class="f-field"><label class="f-label">Estado final</label>
+          <select class="f-input" name="estado_final"><option>Pendiente</option><option>Aprobado</option><option>Rechazado</option><option>En revisión</option></select>
+        </div>
+        <div class="f-field"><label class="f-label">Observaciones</label><input class="f-input" name="observaciones"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn" type="button" onclick="renderEntrevistas()">Cancelar</button>
+        <button class="btn btn-primary" type="submit">💾 Guardar en Google Sheets</button>
+      </div>
+    </div>
+  </div>
+  </form>`);
+}
+
+async function guardarEntrevista(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const datos = Object.fromEntries(fd);
+  // Calcular puntaje automático
+  const campos = ['puntualidad','comunicacion','actitud','conocimiento_zonas','responsabilidad','presencia','compromiso','manejo_apps'];
+  const suma = campos.reduce((s, c) => s + Number(datos[c]||0), 0);
+  datos.puntaje_total = Math.round((suma / (campos.length * 5)) * 100);
+
+  try {
+    const r = await api('', { accion: 'guardar_entrevista', datos });
+    if (r.ok) {
+      toast('✅ Entrevista guardada en Google Sheets (fila ' + r.fila + ')');
+      await cargarTodo();
+      renderEntrevistas();
+    } else toast('❌ Error: ' + (r.error || 'desconocido'));
+  } catch(err) { toast('❌ Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════
+// OPERATIVO
+// ════════════════════════════════════════════════
+function renderOperativo() {
+  const lista = STATE.operativo;
+  const hoy = new Date().toLocaleDateString('es-AR');
+  const opHoy = lista.filter(o => o.fecha === hoy);
+
+  const rows = lista.slice(-30).reverse().map(o => {
+    const tasa = Number(o.paquetes)>0 ? Math.round(Number(o.entregados)/Number(o.paquetes)*100) : 0;
+    const bc = tasa>=85?'b-active':tasa>=70?'b-pending':'b-suspend';
+    return `<tr>
+      <td>${o.fecha}</td><td>${o.nombre_chofer}</td><td>${o.zona}</td>
+      <td>${o.paquetes}</td><td>${o.entregados}</td><td>${o.devoluciones||0}</td>
+      <td>${o.hora_salida||'—'}</td>
+      <td><span class="badge ${bc}">${tasa}%</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:20px;">Sin registros</td></tr>';
+
+  content(`
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Registros operativos — últimos 30 (${lista.length} total)</div>
+        <button class="btn btn-primary btn-sm" onclick="renderFormOperativo()">+ Registrar jornada</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Fecha</th><th>Chofer</th><th>Zona</th><th>Paquetes</th><th>Entregados</th><th>Devoluc.</th><th>Salida</th><th>Rendimiento</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`);
+}
+
+function renderFormOperativo() {
+  const opcChoferes = STATE.choferes.filter(c=>c.estado==='Activo').map(c=>`<option>${c.nombre}</option>`).join('');
+  const opcZonas = [...new Set(STATE.choferes.map(c=>c.zona).filter(Boolean))].map(z=>`<option>${z}</option>`).join('');
+  content(`
+  <form onsubmit="guardarOperativo(event)">
+  <div class="form-section" style="max-width:600px;">
+    <div class="f-sec-title">Registro de jornada operativa</div>
+    <div class="f-grid">
+      <div class="f-field"><label class="f-label">Fecha</label><input class="f-input" name="fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="f-field"><label class="f-label">Chofer *</label><select class="f-input" name="nombre_chofer" required>${opcChoferes||'<option>Sin choferes activos</option>'}</select></div>
+      <div class="f-field"><label class="f-label">Zona *</label><select class="f-input" name="zona">${opcZonas||'<option></option>'}</select></div>
+      <div class="f-field"><label class="f-label">Subzona</label><input class="f-input" name="subzona"></div>
+      <div class="f-field"><label class="f-label">Paquetes asignados *</label><input class="f-input" name="paquetes" type="number" min="0" required></div>
+      <div class="f-field"><label class="f-label">Entregados *</label><input class="f-input" name="entregados" type="number" min="0" required></div>
+      <div class="f-field"><label class="f-label">Devoluciones</label><input class="f-input" name="devoluciones" type="number" min="0" value="0"></div>
+      <div class="f-field"><label class="f-label">Cancelaciones</label><input class="f-input" name="cancelaciones" type="number" min="0" value="0"></div>
+      <div class="f-field"><label class="f-label">Hora salida</label><input class="f-input" name="hora_salida" type="time"></div>
+      <div class="f-field"><label class="f-label">Hora finalización</label><input class="f-input" name="hora_fin" type="time"></div>
+      <div class="f-field"><label class="f-label">¿Ausente?</label><select class="f-input" name="ausente"><option>No</option><option>Sí</option></select></div>
+      <div class="f-field"><label class="f-label">¿Llegada tarde?</label><select class="f-input" name="llegada_tarde"><option>No</option><option>Sí</option></select></div>
+    </div>
+    <div class="f-field" style="margin-top:10px;"><label class="f-label">Observaciones</label><input class="f-input" name="observaciones"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" type="button" onclick="renderOperativo()">Cancelar</button>
+      <button class="btn btn-primary" type="submit">💾 Guardar en Sheets</button>
+    </div>
+  </div>
+  </form>`);
+}
+
+async function guardarOperativo(e) {
+  e.preventDefault();
+  const datos = Object.fromEntries(new FormData(e.target));
+  datos.fecha = new Date(datos.fecha).toLocaleDateString('es-AR');
+  try {
+    const r = await api('', { accion: 'guardar_operativo', datos });
+    if (r.ok) { toast('✅ Jornada guardada (fila ' + r.fila + ')'); await cargarTodo(); renderOperativo(); }
+    else toast('❌ ' + (r.error||'Error'));
+  } catch(err) { toast('❌ Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════
+// VEHÍCULOS
+// ════════════════════════════════════════════════
+function renderVehiculos() {
+  const lista = STATE.vehiculos;
+  const hoy = new Date();
+  const hoy30 = new Date(); hoy30.setDate(hoy30.getDate()+30);
+
+  const rows = lista.map(v => {
+    const fVtv = parseFechaLocal(v.vtv_vencimiento);
+    const vtv_bc = !fVtv ? '' : fVtv < hoy ? 'b-suspend' : fVtv <= hoy30 ? 'b-pending' : 'b-active';
+    const vtv_lbl = !fVtv ? '—' : fVtv < hoy ? '🔴 VENCIDA' : fVtv <= hoy30 ? '⚠ Por vencer' : '✅ Ok';
+    const bc = v.estado==='Operativo'?'b-active':v.estado==='Suspendido'?'b-suspend':'b-pending';
+    return `<tr>
+      <td>${v.patente}</td><td>${v.marca||''} ${v.modelo||''} ${v.año||''}</td>
+      <td>${v.chofer_asignado||'—'}</td>
+      <td>${v.seguro_vencimiento||'—'}</td>
+      <td><span class="badge ${vtv_bc}">${vtv_lbl} ${v.vtv_vencimiento||''}</span></td>
+      <td><span class="badge ${bc}">${v.estado||'—'}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:20px;">Sin vehículos registrados</td></tr>';
+
+  content(`
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Flota registrada (${lista.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="renderFormVehiculo()">+ Agregar vehículo</button>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Patente</th><th>Vehículo</th><th>Chofer</th><th>Seguro venc.</th><th>VTV</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`);
+}
+
+function renderFormVehiculo() {
+  const opcChoferes = STATE.choferes.map(c=>`<option>${c.nombre}</option>`).join('');
+  content(`
+  <form onsubmit="guardarVehiculo(event)">
+  <div class="form-section" style="max-width:600px;">
+    <div class="f-sec-title">Registrar vehículo</div>
+    <div class="f-grid">
+      <div class="f-field"><label class="f-label">Patente *</label><input class="f-input" name="patente" required></div>
+      <div class="f-field"><label class="f-label">Tipo</label><select class="f-input" name="tipo"><option>Auto</option><option>Moto</option><option>Camioneta</option><option>Furgón</option></select></div>
+      <div class="f-field"><label class="f-label">Marca</label><input class="f-input" name="marca"></div>
+      <div class="f-field"><label class="f-label">Modelo</label><input class="f-input" name="modelo"></div>
+      <div class="f-field"><label class="f-label">Año</label><input class="f-input" name="año" type="number"></div>
+      <div class="f-field"><label class="f-label">Color</label><input class="f-input" name="color"></div>
+      <div class="f-field"><label class="f-label">Chofer asignado</label><select class="f-input" name="chofer_asignado">${opcChoferes}</select></div>
+      <div class="f-field"><label class="f-label">Seguro vencimiento</label><input class="f-input" name="seguro_vencimiento" type="date"></div>
+      <div class="f-field"><label class="f-label">VTV vencimiento</label><input class="f-input" name="vtv_vencimiento" type="date"></div>
+      <div class="f-field"><label class="f-label">Estado</label><select class="f-input" name="estado"><option>Operativo</option><option>En mantenimiento</option><option>Suspendido</option></select></div>
+    </div>
+    <div class="f-field" style="margin-top:10px;"><label class="f-label">Observaciones</label><input class="f-input" name="observaciones"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" type="button" onclick="renderVehiculos()">Cancelar</button>
+      <button class="btn btn-primary" type="submit">💾 Guardar</button>
+    </div>
+  </div></form>`);
+}
+
+async function guardarVehiculo(e) {
+  e.preventDefault();
+  const datos = Object.fromEntries(new FormData(e.target));
+  if (datos.seguro_vencimiento) datos.seguro_vencimiento = new Date(datos.seguro_vencimiento).toLocaleDateString('es-AR');
+  if (datos.vtv_vencimiento)    datos.vtv_vencimiento    = new Date(datos.vtv_vencimiento).toLocaleDateString('es-AR');
+  try {
+    const r = await api('', { accion: 'guardar_vehiculo', datos });
+    if (r.ok) { toast('✅ Vehículo guardado'); await cargarTodo(); renderVehiculos(); }
+    else toast('❌ ' + (r.error||'Error'));
+  } catch(err) { toast('❌ Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════
+// PAGOS
+// ════════════════════════════════════════════════
+function renderPagos() {
+  const lista = STATE.pagos;
+  const rows = lista.slice(-30).reverse().map(p => {
+    const bc = p.estado==='Pagado'?'b-active':p.estado==='Pendiente'?'b-pending':'b-suspend';
+    return `<tr>
+      <td>${p.fecha}</td><td>${p.nombre_chofer}</td><td>${p.periodo||''}</td>
+      <td>${p.paquetes}</td>
+      <td>$${Number(p.bruto||0).toLocaleString('es-AR')}</td>
+      <td style="color:var(--red-l)">-$${Number(p.descuentos||0).toLocaleString('es-AR')}</td>
+      <td style="color:var(--green-l)">+$${Number(p.bonificaciones||0).toLocaleString('es-AR')}</td>
+      <td><strong>$${Number(p.neto||0).toLocaleString('es-AR')}</strong></td>
+      <td><span class="badge ${bc}">${p.estado||'Pendiente'}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="color:var(--text3);text-align:center;padding:20px;">Sin registros de pago</td></tr>';
+
+  content(`
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Historial de pagos (${lista.length} registros)</div>
+      <button class="btn btn-primary btn-sm" onclick="renderFormPago()">+ Registrar pago</button>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Fecha</th><th>Chofer</th><th>Período</th><th>Paquetes</th><th>Bruto</th><th>Descuentos</th><th>Bonific.</th><th>Neto</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`);
+}
+
+function renderFormPago() {
+  const opcChoferes = STATE.choferes.filter(c=>c.estado==='Activo').map(c=>`<option>${c.nombre}</option>`).join('');
+  content(`
+  <form onsubmit="guardarPago(event)">
+  <div class="form-section" style="max-width:600px;">
+    <div class="f-sec-title">Registrar pago</div>
+    <div class="f-grid">
+      <div class="f-field"><label class="f-label">Fecha</label><input class="f-input" name="fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="f-field"><label class="f-label">Chofer *</label><select class="f-input" name="nombre_chofer" required>${opcChoferes}</select></div>
+      <div class="f-field"><label class="f-label">Período</label><input class="f-input" name="periodo" placeholder="ej. Semana 20 Mayo"></div>
+      <div class="f-field"><label class="f-label">Paquetes</label><input class="f-input" name="paquetes" type="number" min="0"></div>
+      <div class="f-field"><label class="f-label">Valor por paquete ($)</label><input class="f-input" name="valor_paquete" type="number" min="0" oninput="calcPago()"></div>
+      <div class="f-field"><label class="f-label">Descuentos ($)</label><input class="f-input" name="descuentos" type="number" min="0" value="0" oninput="calcPago()"></div>
+      <div class="f-field"><label class="f-label">Bonificaciones ($)</label><input class="f-input" name="bonificaciones" type="number" min="0" value="0" oninput="calcPago()"></div>
+      <div class="f-field"><label class="f-label">Adelantos ($)</label><input class="f-input" name="adelantos" type="number" min="0" value="0" oninput="calcPago()"></div>
+      <div class="f-field"><label class="f-label">Bruto (auto)</label><input class="f-input" name="bruto" readonly style="color:var(--green-l)"></div>
+      <div class="f-field"><label class="f-label">Neto a pagar (auto)</label><input class="f-input" name="neto" readonly style="color:var(--green-l);font-weight:600;"></div>
+      <div class="f-field"><label class="f-label">Estado</label><select class="f-input" name="estado"><option>Pendiente</option><option>Pagado</option></select></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" type="button" onclick="renderPagos()">Cancelar</button>
+      <button class="btn btn-primary" type="submit">💾 Guardar</button>
+    </div>
+  </div></form>`);
+}
+
+function calcPago() {
+  const paq  = Number(document.querySelector('[name=paquetes]')?.value||0);
+  const vp   = Number(document.querySelector('[name=valor_paquete]')?.value||0);
+  const desc = Number(document.querySelector('[name=descuentos]')?.value||0);
+  const boni = Number(document.querySelector('[name=bonificaciones]')?.value||0);
+  const adel = Number(document.querySelector('[name=adelantos]')?.value||0);
+  const bruto = paq * vp;
+  const neto  = bruto - desc + boni - adel;
+  const bf = document.querySelector('[name=bruto]');
+  const nf = document.querySelector('[name=neto]');
+  if (bf) bf.value = '$' + bruto.toLocaleString('es-AR');
+  if (nf) nf.value = '$' + neto.toLocaleString('es-AR');
+}
+
+async function guardarPago(e) {
+  e.preventDefault();
+  const datos = Object.fromEntries(new FormData(e.target));
+  datos.fecha = new Date(datos.fecha).toLocaleDateString('es-AR');
+  const paq = Number(datos.paquetes||0), vp = Number(datos.valor_paquete||0);
+  datos.bruto = paq * vp;
+  datos.neto  = datos.bruto - Number(datos.descuentos||0) + Number(datos.bonificaciones||0) - Number(datos.adelantos||0);
+  try {
+    const r = await api('', { accion: 'guardar_pago', datos });
+    if (r.ok) { toast('✅ Pago guardado'); await cargarTodo(); renderPagos(); }
+    else toast('❌ ' + (r.error||'Error'));
+  } catch(err) { toast('❌ Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════
+// DISCIPLINARIO
+// ════════════════════════════════════════════════
+function renderDisciplina() {
+  const lista = STATE.incidencias;
+  const rows = lista.map(i => {
+    const gc = i.gravedad==='Alta'?'b-suspend':i.gravedad==='Media'?'b-pending':'b-active';
+    const ec = i.estado==='Cerrado'?'b-active':i.estado==='Abierto'?'b-suspend':'b-pending';
+    return `<tr>
+      <td>${i.fecha}</td><td>${i.nombre_chofer}</td><td>${i.tipo}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.descripcion}</td>
+      <td><span class="badge ${gc}">${i.gravedad}</span></td>
+      <td>${i.sancion||'—'}</td>
+      <td><span class="badge ${ec}">${i.estado}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:20px;">Sin incidencias registradas</td></tr>';
+
+  content(`
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Registro de incidencias (${lista.length})</div>
+      <button class="btn btn-primary btn-sm" onclick="renderFormIncidencia()">+ Nueva incidencia</button>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Fecha</th><th>Chofer</th><th>Tipo</th><th>Descripción</th><th>Gravedad</th><th>Sanción</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`);
+}
+
+function renderFormIncidencia() {
+  const opcChoferes = STATE.choferes.map(c=>`<option>${c.nombre}</option>`).join('');
+  content(`
+  <form onsubmit="guardarIncidencia(event)">
+  <div class="form-section" style="max-width:600px;">
+    <div class="f-sec-title">Registrar incidencia</div>
+    <div class="f-grid">
+      <div class="f-field"><label class="f-label">Fecha</label><input class="f-input" name="fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="f-field"><label class="f-label">Chofer *</label><select class="f-input" name="nombre_chofer" required>${opcChoferes}</select></div>
+      <div class="f-field"><label class="f-label">Tipo</label><select class="f-input" name="tipo"><option>Ausencia injustificada</option><option>Llegada tarde</option><option>Bajo rendimiento</option><option>Paquete perdido</option><option>Reclamo de cliente</option><option>Accidente</option><option>Mala conducta</option><option>Documentación vencida</option><option>Otro</option></select></div>
+      <div class="f-field"><label class="f-label">Gravedad</label><select class="f-input" name="gravedad"><option>Baja</option><option selected>Media</option><option>Alta</option></select></div>
+      <div class="f-field"><label class="f-label">Sanción aplicada</label><select class="f-input" name="sancion"><option>Ninguna</option><option>Advertencia verbal</option><option>Advertencia escrita</option><option>Descuento en pago</option><option>Suspensión</option><option>Desvinculación</option></select></div>
+      <div class="f-field"><label class="f-label">Estado</label><select class="f-input" name="estado"><option>Abierto</option><option>En seguimiento</option><option>Cerrado</option></select></div>
+    </div>
+    <div class="f-field" style="margin-top:10px;"><label class="f-label">Descripción detallada</label><input class="f-input" name="descripcion" required></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn" type="button" onclick="renderDisciplina()">Cancelar</button>
+      <button class="btn btn-primary" type="submit">💾 Guardar</button>
+    </div>
+  </div></form>`);
+}
+
+async function guardarIncidencia(e) {
+  e.preventDefault();
+  const datos = Object.fromEntries(new FormData(e.target));
+  datos.fecha = new Date(datos.fecha).toLocaleDateString('es-AR');
+  try {
+    const r = await api('', { accion: 'guardar_incidencia', datos });
+    if (r.ok) { toast('✅ Incidencia guardada'); await cargarTodo(); renderDisciplina(); }
+    else toast('❌ ' + (r.error||'Error'));
+  } catch(err) { toast('❌ Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════
+// GERENCIAL
+// ════════════════════════════════════════════════
+function renderGerencial() {
+  const k = STATE.dashboard?.kpis || {};
+  const choferes = STATE.choferes;
+  const activos = choferes.filter(c=>c.estado==='Activo').length;
+  const total   = choferes.length;
+
+  content(`
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <div class="kpi-grid">
+      <div class="kpi-card green"><div class="kpi-label">Eficiencia operativa</div><div class="kpi-value">${k.tasaExito||0}%</div><div class="kpi-delta">entregas exitosas hoy</div></div>
+      <div class="kpi-card blue"><div class="kpi-label">Choferes activos</div><div class="kpi-value">${activos}</div><div class="kpi-delta">de ${total} registrados</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Incidencias abiertas</div><div class="kpi-value">${k.incAbiertos||0}</div><div class="kpi-delta down ${(k.incAbiertos||0)>0?'':''}">requieren atención</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Vehículos críticos</div><div class="kpi-value">${k.vtv_criticos||0}</div><div class="kpi-delta">VTV vencida</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">KPIs principales</div></div>
+      ${[
+        { label: 'Tasa de entregas exitosas', val: k.tasaExito||0, color: (k.tasaExito||0)>=85?'var(--green)':'var(--amber)', meta: '90%' },
+        { label: 'Choferes activos vs total', val: total>0?Math.round(activos/total*100):0, color: 'var(--blue)', meta: '100%' },
+        { label: 'Vehículos operativos', val: STATE.vehiculos.length>0?Math.round(STATE.vehiculos.filter(v=>v.estado==='Operativo').length/STATE.vehiculos.length*100):0, color: 'var(--green)', meta: '95%' },
+        { label: 'Incidencias sin cerrar', val: STATE.incidencias.length>0?Math.round(STATE.incidencias.filter(i=>i.estado==='Cerrado').length/STATE.incidencias.length*100):100, color: 'var(--amber)', meta: '100%' },
+      ].map((row, i) => `
+        <div class="rank-item">
+          <div class="rank-n ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+          <div class="rank-bar-w">
+            <div class="rank-name">${row.label} <small style="color:var(--text3)">(meta: ${row.meta})</small></div>
+            <div class="rank-bar" style="width:${row.val}%;background:${row.color};"></div>
+          </div>
+          <div class="rank-count" style="color:${row.color}">${row.val}%</div>
+        </div>`).join('')}
+    </div>
+  </div>`);
+}
+
+// ════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════
+function parseFechaLocal(str) {
+  if (!str) return null;
+  const p = str.toString().split('/');
+  if (p.length === 3) return new Date(p[2], p[1]-1, p[0]);
+  return null;
+}
+
+function exportarPDF() {
+  window.print();
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pageSub').textContent = new Date().toLocaleDateString('es-AR', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  if (API_URL === 'PEGAR_URL_APPS_SCRIPT_AQUI') {
+    content(`
+      <div class="alert-strip warn" style="margin-bottom:16px;">
+        ⚙ <strong>Configuración necesaria:</strong> Abrí este archivo HTML en un editor de texto y pegá la URL de tu Apps Script donde dice <code>PEGAR_URL_APPS_SCRIPT_AQUI</code>.
+      </div>
+      <div class="card" style="max-width:600px;">
+        <div class="card-title" style="margin-bottom:12px;">Pasos para conectar con Google Sheets</div>
+        <ol style="font-size:13px;color:var(--text2);line-height:2.2;padding-left:18px;">
+          <li>Abrí tu Google Sheet</li>
+          <li>Ir a <strong style="color:var(--text)">Extensiones → Apps Script</strong></li>
+          <li>Pegá el contenido del archivo <code>PASO1_AppsScript.gs</code></li>
+          <li>Hacer clic en <strong style="color:var(--text)">Implementar → Nueva implementación</strong></li>
+          <li>Tipo: <strong style="color:var(--text)">Aplicación web</strong></li>
+          <li>Ejecutar como: <strong style="color:var(--text)">Yo</strong></li>
+          <li>Quién tiene acceso: <strong style="color:var(--text)">Cualquiera</strong></li>
+          <li>Copiá la URL generada</li>
+          <li>Abrí <code>ELYON PACK_Dashboard.html</code> en un editor y pegá la URL en la variable <code>API_URL</code></li>
+          <li>Guardá y abrí el archivo en el navegador</li>
+        </ol>
+      </div>`);
+    setSync(false);
+  } else {
+    cargarTodo();
+  }
+});
+</script>
+</body>
+</html>
